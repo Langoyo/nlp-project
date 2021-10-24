@@ -1,4 +1,3 @@
-# BEGIN - DO NOT CHANGE THESE IMPORTS/CONSTANTS OR IMPORT ADDITIONAL PACKAGES.
 import torch
 from torch.utils.data import Dataset
 from collections import Counter
@@ -7,7 +6,6 @@ import numpy as np
 PADDING_VALUE = 0
 UNK_VALUE = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# END - DO NOT CHANGE THESE IMPORTS/CONSTANTS OR IMPORT ADDITIONAL PACKAGES.
 
 
 # split_train_val_test
@@ -26,8 +24,6 @@ def split_train_val_test(df, props=[.8, .1, .1]):
     assert round(sum(props), 2) == 1 and len(props) >= 2
     train_df, test_df, val_df = None, None, None
     
-    ## YOUR CODE STARTS HERE (~3-5 lines of code) ##
-    # hint: you can use df.iloc to slice into specific indexes or ranges.
     train_size = int(props[0] * len(df))
     val_size =  train_size + int(props[1] * len(df))
     test_size =val_size + int(props[2] * len(df)) 
@@ -36,7 +32,6 @@ def split_train_val_test(df, props=[.8, .1, .1]):
     test_df = df.iloc[val_size:test_size]
     
 
-    ## YOUR CODE ENDS HERE ##
     
     return train_df, val_df, test_df
 
@@ -68,7 +63,6 @@ def generate_vocab_map(df, cutoff=0):
     vocab_count = dict()
     reversed_vocab = { PADDING_VALUE:"", UNK_VALUE:"UNK" }
     
-    ## YOUR CODE STARTS HERE (~5-15 lines of code) ##
     # hint: start by iterating over df["tokenized"]
 
     # Counting occurrences
@@ -79,14 +73,11 @@ def generate_vocab_map(df, cutoff=0):
             else: 
                 vocab_count[word] += 1
     index = 2
-    # Creating mappings based on occurrences and cutoff
     for word in vocab_count.keys():
         if vocab_count[word] > cutoff:
             vocab[word] = index
             reversed_vocab[index] = word
             index+=1
-
-    ## YOUR CODE ENDS HERE ##
     
     return vocab, reversed_vocab
 
@@ -98,7 +89,7 @@ def generate_vocab_map(df, cutoff=0):
 class HeadlineDataset(Dataset):
     
     # initialize this class with appropriate instance variables
-    def __init__(self, vocab, df,embeddings, max_length=50):
+    def __init__(self, vocab, df,embeddings, max_length=50, FASTTEXT=False):
         # For this method: I would *strongly* recommend storing the dataframe 
         #                  itself as an instance variable, and keeping this method
         #                  very simple. Leave processing to __getitem__. 
@@ -108,18 +99,15 @@ class HeadlineDataset(Dataset):
         #                  bottom of this file.
         # 
         
-        ## YOUR CODE STARTS HERE (~3 lines of code) ##
         self.vocab = vocab
         self.df = df
         self.tmp = 2
         self.embeddings = embeddings
-        ## YOUR CODE ENDS HERE ##
+        self.fasttext = FASTTEXT
     
     # return the length of the dataframe instance variable
     def __len__(self):
-        ## YOUR CODE STARTS HERE (1 line of code) ##
         return len(self.df['author'])
-        ## YOUR CODE ENDS HERE ##
     
     # __getitem__
     # 
@@ -150,28 +138,29 @@ class HeadlineDataset(Dataset):
     # 
     def __getitem__(self, index: int):
         
-        ## YOUR CODE STARTS HERE (~3-7 lines of code) ##
         tmp = []
         tmp_index = 0
         for list in self.df["text"]:
             if tmp_index == index:
                 for word in list:
-                    if word in self.vocab.keys():
-                        # tmp.append(self.vocab[word])
-                        tmp.append(self.embeddings.get_vector(word))
+                    # Return zero embed in case the plane is not there
+                    if not self.fasttext:
+                        if word in self.embeddings.wv.vocab:
+                            tmp.append(self.embeddings.get_vector(word))
+                        else:
+                            tmp.append(np.zeros(300))
                     else:
-                        # tmp.append(self.vocab["UNK"])
-                        tmp.append(np.zeros(300))
+                        tmp.append(self.embeddings.get_vector(word))
             tmp_index+=1
+            
         tmp_index = 0
         for list in self.df["author"]:
             if tmp_index == index:
                 curr_label = list
             tmp_index += 1
         tokenized_word_tensor = torch.Tensor(tmp)
-        # tokenized_word_tensor.to(device)
+
         # curr_label = self.df["label"][index] this gives errors :(
-        ## YOUR CODE ENDS HERE ##
         return tokenized_word_tensor,curr_label
         
 
@@ -199,27 +188,13 @@ class HeadlineDataset(Dataset):
 # 
 def collate_fn(batch, padding_value=PADDING_VALUE):
     padded_tokens, y_labels = None, None
-    ## YOUR CODE STARTS HERE (~4-8 lines of code) ##
     exes = []
     yses = []
     for x,y in batch:
         exes.append(x)
         yses.append(y)
-    y_labels = torch.FloatTensor(yses)
-    # y_labels.to(device)
-    padded_tokens = torch.nn.utils.rnn.pad_sequence(exes,True,padding_value)
-    # padded_tokens.to(device)
-    ## YOUR CODE ENDS HERE ##
-    return padded_tokens, y_labels
 
-#
-# Completely optional aside on preprocessing in __init__.
-# 
-# Sometimes the compute bottleneck actually ends up being in __getitem__.
-# In this case, you'd loop over your dataset in __init__, passing data 
-# to __getitem__ and storing it in another instance variable. Then,
-# you can simply return the preprocessed data in __getitem__ instead of
-# doing the preprocessing.
-# 
-# There is a tradeoff though: can you think of one?
-# 
+    y_labels = torch.LongTensor(yses)
+    padded_tokens = torch.nn.utils.rnn.pad_sequence(exes,True,padding_value)
+
+    return padded_tokens, y_labels
