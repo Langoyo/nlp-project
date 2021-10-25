@@ -32,13 +32,20 @@ def split_train_val_test(df, props=[.8, .1, .1]):
 # %%
 import gensim.downloader as api
 
-def download_word2vec_embeddings():
-    print("Downloading pre-trained word embeddings from: word2vec-google-news-300.\n" 
-          + "Note: This can take a few minutes.\n")
-    wv = api.load("word2vec-google-news-300")
-    print("\nLoading complete!\n" +
-          "Vocabulary size: {}".format(len(wv.vocab)))
+def download_embeddings(fasttetxt):
+    # https://fasttext.cc/docs/en/english-vectors.html
+    if fasttetxt:
+      wv = api.load("fasttext-wiki-news-subwords-300")
+    else:
+      
+      wv = api.load("word2vec-google-news-300")
+      print("\nLoading complete!\n" +
+            "Vocabulary size: {}".format(len(wv.vocab)))
     return wv
+
+
+# %%
+
 
 
 # %%
@@ -78,8 +85,9 @@ train_vocab, reversed_vocab = generate_vocab_map(train_df)
 
 
 # %%
-DOWNLOAD = False
-FASTTEXT = False
+DOWNLOAD = True
+# Use fastext or word2vec
+FASTTEXT = True
 WINDOW_SIZE = 5
 
 EMBEDDING_DIM = 300
@@ -92,22 +100,14 @@ BIDIRECTIONAL = True
 # Downloading or generating word2vec embeddings
 
 if DOWNLOAD:
-    model = download_word2vec_embeddings()
+    model = download_embeddings(FASTTEXT)
 else:
-    if not FASTTEXT:
-        model = gensim.models.Word2Vec(sentences=train_df['text'], size=EMBEDDING_DIM, window=WINDOW_SIZE)
-    else:
+    if FASTTEXT:
         model = gensim.models.FastText(sentences=train_df['text'], size=EMBEDDING_DIM, window=WINDOW_SIZE)
+    else:
+        model = gensim.models.Word2Vec(sentences=train_df['text'], size=EMBEDDING_DIM, window=WINDOW_SIZE)
                         
 
-# %% [markdown]
-# Here's what the dataset looks like. You can index into specific rows with pandas, and try to guess some of these yourself :)
-# %% [markdown]
-# Now that we've loaded this dataset, we need to split the data into train, validation, and test sets. We also need to create a vocab map for words in our Onion dataset, which will map tokens to numbers. This will be useful later, since torch models can only use tensors of sequences of numbers as inputs. **Go to src/dataset.py, and fill out split_train_val_test, generate_vocab_map**
-# %% [markdown]
-# PyTorch has custom Datset Classes that have very useful extentions. **Go to src/dataset.py, and fill out the HeadlineDataset class.** Refer to PyTorch documentation on Dataset Classes for help.
-# %% [markdown]
-# We can now use PyTorch DataLoaders to batch our data for us. **Go to src/dataset.py, and fill out collate_fn.** Refer to PyTorch documentation on Dataloaders for help.
 
 # %%
 from src.dataset import HeadlineDataset
@@ -167,7 +167,7 @@ def train_loop(model, criterion, iterator):
         optimizer.zero_grad()
 
         prediction = model(x)
-        prediction = torch.squeeze(prediction,0)
+        prediction = torch.squeeze(prediction)
         # y = y.round()
         # y = y.long()
 
@@ -214,15 +214,15 @@ for epoch in range(TOTAL_EPOCHS):
     true, pred = val_loop(model, criterion, val_iterator)
     print(f"EPOCH: {epoch}")
     print(f"TRAIN LOSS: {train_loss}")
-    # print(f"VAL F-1: {binary_macro_f1(true, pred)}")
-    # print(f"VAL ACC: {accuracy(true, pred)}")
+    print(f"VAL F-1: {binary_macro_f1(true, pred)}")
+    print(f"VAL ACC: {accuracy(true, pred)}")
 
 # %% [markdown]
 # We can also look at the models performance on the held-out test set, using the same val_loop we wrote earlier.
 
 # %%
 true, pred = val_loop(model, criterion, test_iterator)
-# print(f"TEST F-1: {binary_macro_f1(true, pred)}")
-# print(f"TEST ACC: {accuracy(true, pred)}")
+print(f"TEST F-1: {binary_macro_f1(true, pred)}")
+print(f"TEST ACC: {accuracy(true, pred)}")
 
 
