@@ -1,0 +1,14 @@
+notebook
+numpy
+pandas
+torch
+torchvision
+torchtext
+matplotlib
+numpy
+gradescope-utils
+ddt
+Pillow
+tqdm
+nltk
+transformers
