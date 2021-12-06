@@ -1,0 +1,12 @@
+texthero==1.0.9
+pyLDAvis
+sklearn
+wordcloud
+matplotlib
+plotly
+nltk
+pandas
+tqdm
+torch
+numpy
+gensim==3.8.3
