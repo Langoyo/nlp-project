@@ -7,34 +7,6 @@ PADDING_VALUE = 0
 UNK_VALUE = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-# split_train_val_test
-# This method takes a dataframe and splits it into train/val/test splits.
-# It uses the props argument to split the dataset appropriately.
-#
-# args:
-# df - the entire dataset DataFrame 
-# props - proportions for each split. the last value of the props array 
-#         is repetitive, but we've kept it for clarity.
-#
-# returns: 
-# train DataFrame, val DataFrame, test DataFrame
-#
-def split_train_val_test(df, props=[.8, .1, .1]):
-    assert round(sum(props), 2) == 1 and len(props) >= 2
-    train_df, test_df, val_df = None, None, None
-    
-    train_size = int(props[0] * len(df))
-    val_size =  train_size + int(props[1] * len(df))
-    test_size =val_size + int(props[2] * len(df)) 
-    train_df = df.iloc[0:train_size]
-    val_df = df.iloc[train_size:val_size]
-    test_df = df.iloc[val_size:test_size]
-    
-
-    
-    return train_df, val_df, test_df
-
 # generate_vocab_map
 # This method takes a dataframe and builds a vocabulary to unique number map.
 # It uses the cutoff argument to remove rare words occuring <= cutoff times. 

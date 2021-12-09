@@ -27,15 +27,14 @@ class ClassificationModel(nn.Module):
         ## YOUR CODE STARTS HERE (~4 lines of code) ##
         self.hidden_dim = hidden_dim
         self.bidirectional = bidirectional
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.embedded_layer = nn.Embedding(vocab_size,embedding_dim)
         if bidirectional:
-            self.LSTM = nn.LSTM(embedding_dim,hidden_dim,num_layers=num_layers,bidirectional=bidirectional)
-            self.linear = nn.Linear(hidden_dim*2,1)
+            self.LSTM = nn.LSTM(embedding_dim,hidden_dim,num_layers=num_layers,bidirectional=bidirectional,batch_first=True)
+            self.linear = nn.Linear(hidden_dim*2,3)
         else:
-            self.LSTM = nn.LSTM(embedding_dim,hidden_dim,num_layers=num_layers,bidirectional=bidirectional)
-            self.linear = nn.Linear(hidden_dim,1)
-        self.sigmoid = nn.Sigmoid()
+            self.LSTM = nn.LSTM(embedding_dim,hidden_dim,num_layers=num_layers,bidirectional=bidirectional,batch_first=True)
+            self.linear = nn.Linear(hidden_dim,3)
+        self.softmax = nn.Softmax(dim=1)
         ## YOUR CODE ENDS HERE ##
         
     # Complete the forward pass of the model.
@@ -54,14 +53,13 @@ class ClassificationModel(nn.Module):
         #print(x)
         # print(x.get_device())
         x = self.embedded_layer(x)
-        x = torch.transpose(x,0,1)
+        # x = torch.transpose(x,0,1)
         # Using only last hidden step
         out, (hn, cn) = self.LSTM(x)
         if bidirectional:
             hn = torch.cat([hn[0,:, :], hn[1,:,:]], dim=1).unsqueeze(0)
-        x = self.sigmoid(self.linear(hn))
-
-        
+        x = self.linear(hn)
+                
         return x
         ## YOUR CODE ENDS HERE ##
     

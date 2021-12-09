@@ -21,23 +21,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # returns: 
 # train DataFrame, val DataFrame, test DataFrame
 #
-def split_train_val_test(df, props=[.8, .1, .1]):
+def split_train_val_test(df, props=[.9, .1]):
     assert round(sum(props), 2) == 1 and len(props) >= 2
-    train_df, test_df, val_df = None, None, None
+    train_df, val_df = None, None
     
     ## YOUR CODE STARTS HERE (~3-5 lines of code) ##
     # hint: you can use df.iloc to slice into specific indexes or ranges.
     train_size = int(props[0] * len(df))
     val_size =  train_size + int(props[1] * len(df))
-    test_size =val_size + int(props[2] * len(df)) 
     train_df = df.iloc[0:train_size]
-    val_df = df.iloc[train_size:val_size]
-    test_df = df.iloc[val_size:test_size]
+    val_df = df.iloc[train_size:]
     
 
     ## YOUR CODE ENDS HERE ##
     
-    return train_df, val_df, test_df
+    return train_df, val_df
 
 # generate_vocab_map
 # This method takes a dataframe and builds a vocabulary to unique number map.
@@ -116,7 +114,7 @@ class HeadlineDataset(Dataset):
     # return the length of the dataframe instance variable
     def __len__(self):
         ## YOUR CODE STARTS HERE (1 line of code) ##
-        return len(self.df['label'])
+        return len(self.df['author'])
         ## YOUR CODE ENDS HERE ##
     
     # __getitem__
@@ -160,7 +158,7 @@ class HeadlineDataset(Dataset):
                         tmp.append(self.vocab["UNK"])
             tmp_index+=1
         tmp_index = 0
-        for list in self.df["label"]:
+        for list in self.df["author"]:
             if tmp_index == index:
                 curr_label = list
             tmp_index += 1
