@@ -24,13 +24,13 @@ def reduced_word_tokenize(sentence):
     return tokens
 
 def _is_valid_token(t):
-    if t in stopwords.words():
+    if t.lower().strip() in stopwords.words('english'):
         return False
     return True
 
 # Returns a sorted list vocab for the input dataframe
 def create_vocab(data):
-    unique = data['tokens'].explode().unique()
+    unique = data['tokens'].explode().unique().astype(str)
     unique_list = sorted(unique.tolist())
     return unique_list
 
@@ -70,7 +70,7 @@ def idf_vec(data):
     return idf_arr
 
 def tfidf(bag_vec, idf_arr):
-    tf = bag_vec / np.sum(bag_vec)
+    tf = (np.array(bag_vec) + 1) / (np.sum(bag_vec) + len(bag_vec))
     # print(np.sum(bag_vec))
     tf_idf = tf * idf_arr
     return tf_idf
